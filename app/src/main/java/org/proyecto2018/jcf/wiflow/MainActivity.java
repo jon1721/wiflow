@@ -16,7 +16,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_wiflow.pb");
+//        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_wiflow.pb");
+        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_final.hdf5.pb");
         // run the model for all possible inputs i.e. [0,0], [0,1], [1,0], [1,1]
         // ejercitar el modelo con varios condiciones de entrada
         //float[] input = {50,47,45,44,31,30,30,0,0,0,0,0,0,0,0,0,0,0,0,0}; // 0.9, 7.9
