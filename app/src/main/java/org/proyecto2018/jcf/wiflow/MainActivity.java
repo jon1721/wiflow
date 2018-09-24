@@ -1,11 +1,21 @@
 package org.proyecto2018.jcf.wiflow;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -13,7 +23,32 @@ public class MainActivity extends AppCompatActivity {
     private TensorFlowInferenceInterface inferenceInterface;
     private float[] output;
     private TextView salida;
+    private Button buttonScan;
     private String texto = "";
+    private static WifiManager wifiMng;
+    private static WiFiScanReceiver wifiReceiver;
+    private String[] macs = {
+            "c0:c1:c0:b0:3a:9b",
+            "08:7a:4c:34:a0:24",
+            "f8:35:dd:6e:50:29",
+            "00:13:10:93:be:f8",
+            "d8:d7:75:ee:23:26",
+            "fa:8f:ca:54:7a:29",
+            "70:4f:57:82:4a:1c",
+            "44:40:b0:5d:e7:15",
+            "84:17:ef:4e:92:e0",
+            "5c:f4:ab:bf:38:40",
+            "c8:3d:d4:e4:9a:a0",
+            "84:00:2d:2c:ad:85",
+            "24:7f:20:08:d1:36",
+            "a4:08:f5:f0:ee:72",
+            "b4:75:0e:d9:7b:fb",
+            "c8:3d:d4:d9:12:40",
+            "50:6a:03:c8:db:2d",
+            "7c:b7:33:29:cb:17",
+            "e4:be:ed:c0:6b:48",
+            "98:de:d0:42:fe:46"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         salida = (TextView) findViewById(R.id.salida);
+        buttonScan = (Button) findViewById(R.id.buttonScan);
+
 
         // ejercitar el modelo con varios condiciones de entrada
         float[][] atributos = {
@@ -188,6 +225,20 @@ public class MainActivity extends AppCompatActivity {
 
             salida.setText(texto);
         }
+
+        RegistrarReceptorWiFi();
+
+        buttonScan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(wifiMng.startScan() == true) {
+                    salida.setText("\n\n\n" + "scan iniciado");
+                } else {
+                    salida.setText("\n\n\n" + "Falló inicio de scan");
+                }
+            }
+        });
+
     }
 
     private float[] predict(float[] input){
@@ -199,5 +250,58 @@ public class MainActivity extends AppCompatActivity {
         inferenceInterface.fetch("dense_4/Relu", output);
 
         return output;
+    }
+
+    private void RegistrarReceptorWiFi()
+    {
+        wifiReceiver = new WiFiScanReceiver();
+
+        if (wifiReceiver != null)
+        {
+            registerReceiver(wifiReceiver,
+                    new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+            wifiMng = (WifiManager) getApplicationContext().getSystemService(this.WIFI_SERVICE);
+            wifiMng.setWifiEnabled(true);
+        }
+    }
+
+    class WiFiScanReceiver extends BroadcastReceiver {
+
+        private static final String TAG = "JCDBG";
+        ScanResult scanres;
+        String macAdd = "";
+        int nivel = 0;
+        List<ScanResult> wifiScanList;
+        float[] atributosNivel = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            Log.d(TAG, "WiFiScanReceiver onReceive");
+            salida.setText("WiFiScanReceiver onReceive");
+            wifiScanList = wifiMng.getScanResults();
+            for(int i = 0; i < wifiScanList.size(); i++) {
+                scanres = wifiScanList.get(i);
+                macAdd = scanres.BSSID;
+                nivel = scanres.level;
+
+                for(int j = 0; j < macs.length; j++) {
+                    if(macs[j].equals(macAdd)) {
+                        atributosNivel[j] = nivel+100; // sumo 100 de acuerdo a como se entrenó el modelo
+                    }
+                }
+            }
+
+            output = predict(atributosNivel);
+            Log.d(TAG, "Predicción: " + String.format("%.2f", output[0]) + ", " + String.format("%.2f", output[1]));
+            texto = "Predicción: x=" + String.format("%.2f", output[0]) + ", y=" + String.format("%.2f", output[1]);
+            salida.setText("\n\n\n" + texto);
+            if(wifiMng.startScan() == true) {
+                Log.i(TAG, "WiFiScanReceiver: Scan iniciado");
+            } else {
+                Log.i(TAG, "WiFiScanReceiver: Falló inicio de scan");
+                salida.setText("\n\n\n" + "Falló inicio automático de scan");
+            }
+        }
     }
 }
