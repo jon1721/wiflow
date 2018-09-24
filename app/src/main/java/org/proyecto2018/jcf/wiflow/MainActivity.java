@@ -22,8 +22,6 @@ public class MainActivity extends AppCompatActivity {
 
         salida = (TextView) findViewById(R.id.salida);
 
-//        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_wiflow.pb");
-        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_final.hdf5.pb");
         // ejercitar el modelo con varios condiciones de entrada
         float[][] atributos = {
                 {50,48,45,44,31,30,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -179,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
                 {10.4,10.0}
         };
 
+        inferenceInterface = new TensorFlowInferenceInterface(getAssets(), "model_final.hdf5.pb");
         for(int i=0 ; i<atributos.length ; i++){
             output = predict(atributos[i]);
             Log.d(TAG, "Predicción: " + String.format("%.2f", output[0]) + ", " + String.format("%.2f", output[1])
@@ -192,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private float[] predict(float[] input){
-        // model_wiflow tiene dos neuronas de salida
+        // nuestro modelo tiene dos neuronas de salida
         float output[] = new float[2];
 
         inferenceInterface.feed("dense_input", input, 1, input.length);
